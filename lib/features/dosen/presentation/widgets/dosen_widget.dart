@@ -1,76 +1,95 @@
 import 'package:flutter/material.dart';
 import '../../data/models/dosen_model.dart';
 
-class ModernDosenCard extends StatelessWidget {
+class ModernDosenCard extends StatefulWidget {
   final DosenModel dosen;
-  final int index; // Pastikan baris ini ada
+  final int index; // Pastikan ada ini
+  final VoidCallback? onTap;
+  final List<Color>? gradientColors;
 
   const ModernDosenCard({
     super.key,
     required this.dosen,
-    required this.index, // Dan baris ini juga ada
+    required this.index, // Dan ada ini
+    this.onTap,
+    this.gradientColors,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final List<Color> accentColors = [
-      Colors.purple,
-      Colors.blue,
-      Colors.pink,
-      Colors.orange,
-    ];
-    final color = accentColors[index % accentColors.length];
+  State<ModernDosenCard> createState() => _ModernDosenCardState();
+}
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+class _ModernDosenCardState extends State<ModernDosenCard> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = widget.gradientColors ?? [Colors.purple, Colors.purpleAccent];
+
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) {
+        _controller.reverse();
+        widget.onTap?.call();
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: [BoxShadow(color: colors[0].withOpacity(0.1), blurRadius: 10)],
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: IntrinsicHeight(
           child: Row(
             children: [
-              Container(width: 6, color: color),
-              const SizedBox(width: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: CircleAvatar(
-                  radius: 30,
-                  backgroundColor: color.withOpacity(0.1),
+              Container(
+                width: 60, height: 60,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: colors),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
                   child: Text(
-                    dosen.nama[0].toUpperCase(),
-                    style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 24),
+                    widget.dosen.name[0].toUpperCase(),
+                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      dosen.nama,
-                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF2D3142)),
-                    ),
-                    const SizedBox(height: 6),
-                    _buildInfoRow(Icons.badge_outlined, 'NIP: ${dosen.nip}'),
-                    const SizedBox(height: 4),
-                    _buildInfoRow(Icons.email_outlined, dosen.email),
+                    Text(widget.dosen.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    _buildRow(Icons.account_circle_outlined, '@${widget.dosen.username}'),
+                    _buildRow(Icons.email_outlined, widget.dosen.email),
+                    _buildRow(Icons.location_on_outlined, widget.dosen.address.city),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
-              const SizedBox(width: 16),
+              const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
             ],
           ),
         ),
@@ -78,18 +97,12 @@ class ModernDosenCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text) {
+  Widget _buildRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: Colors.grey[500]),
+        Icon(icon, size: 14, color: Colors.grey),
         const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 13, color: Colors.grey))),
       ],
     );
   }

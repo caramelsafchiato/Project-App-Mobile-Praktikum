@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/constants.dart';
 import '../providers/dashboard_provider.dart';
 import '../widgets/dashboard_widget.dart';
-// Import halaman tujuan
 import '../../../dosen/presentation/pages/dosen_page.dart';
 import '../../../mahasiswa/presentation/pages/mahasiswa_page.dart';
+import '../../../mahasiswa/presentation/pages/mahasiswa_aktif_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 
 class DashboardPage extends ConsumerWidget {
@@ -196,7 +196,7 @@ class DashboardPage extends ConsumerWidget {
                                   targetPage = const MahasiswaPage();
                                 }
                                 else if (stat.title == 'Mahasiswa Aktif') {
-                                  targetPage = const MahasiswaPage(filterStatus: 'Aktif');
+                                  targetPage = const MahasiswaAktifPage();
                                 }
                                 else if (index == 3) {
                                   targetPage = const ProfilePage();

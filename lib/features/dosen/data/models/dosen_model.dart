@@ -1,31 +1,48 @@
+class AddressModel {
+  final String street;
+  final String suite;
+  final String city;
+  final String zipcode;
+
+  AddressModel({
+    required this.street,
+    required this.suite,
+    required this.city,
+    required this.zipcode,
+  });
+
+  factory AddressModel.fromJson(Map<String, dynamic> json) {
+    return AddressModel(
+      street: json['street'] ?? '',
+      suite: json['suite'] ?? '',
+      city: json['city'] ?? '',
+      zipcode: json['zipcode'] ?? '',
+    );
+  }
+}
+
 class DosenModel {
-  final String nama;
-  final String nip;
+  final int id;
+  final String name;
+  final String username;
   final String email;
-  final String jurusan;
+  final AddressModel address;
 
   DosenModel({
-    required this.nama,
-    required this.nip,
+    required this.id,
+    required this.name,
+    required this.username,
     required this.email,
-    required this.jurusan,
+    required this.address,
   });
 
   factory DosenModel.fromJson(Map<String, dynamic> json) {
     return DosenModel(
-      nama: json['nama'] ?? '',
-      nip: json['nip'] ?? '',
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      username: json['username'] ?? '',
       email: json['email'] ?? '',
-      jurusan: json['jurusan'] ?? '',
+      address: AddressModel.fromJson(json['address'] ?? {}),
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'nama': nama,
-      'nip': nip,
-      'email': email,
-      'jurusan': jurusan,
-    };
   }
 }
