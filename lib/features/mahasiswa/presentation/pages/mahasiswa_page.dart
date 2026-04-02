@@ -1,80 +1,120 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/constants.dart';
+import '../../../../core/widgets/common_widgets.dart'; // Ganti ke widgets.dart jika beda nama
 import '../providers/mahasiswa_provider.dart';
-import '../widgets/mahasiswa_widget.dart';
 
 class MahasiswaPage extends ConsumerWidget {
-  // 1. Tambahkan parameter filterStatus agar bisa menerima instruksi dari Dashboard
-  final String? filterStatus;
+  final String? filterStatus; // null untuk 'Semua', 'Aktif' untuk filter aktif
   
   const MahasiswaPage({super.key, this.filterStatus});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(mahasiswaNotifierProvider);
+    final savedMhs = ref.watch(savedMhsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FE),
-      body: state.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (list) {
-          // 2. LOGIKA FILTER: Menyaring list berdasarkan status jika filterStatus tidak null
-          final filteredList = filterStatus == null 
-              ? list 
-              : list.where((mhs) => mhs.status == filterStatus).toList();
+      appBar: AppBar(
+        title: Text(filterStatus == 'Aktif' ? 'Mahasiswa Aktif' : 'Daftar Mahasiswa'),
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+      ),
+      body: Column(
+        children: [
+          // SEKSI ATAS: DATA OFFLINE DARI LOCAL STORAGE [cite: 261-263]
+          _buildSavedSection(savedMhs, ref),
+          
+          const Divider(height: 1),
+          
+          // SEKSI BAWAH: DATA ONLINE DARI API [cite: 234-245]
+          Expanded(
+            child: state.when(
+              loading: () => const LoadingWidget(),
+              error: (e, _) => CustomErrorWidget(
+                message: "Gagal ambil data API",
+                onRetry: () => ref.read(mahasiswaNotifierProvider.notifier).loadMahasiswaList(),
+              ),
+              data: (list) {
+                // Filter logika status [cite: 480-482]
+                final filtered = filterStatus == null 
+                    ? list 
+                    : list.where((m) => m.status == filterStatus).toList();
 
-          return RefreshIndicator(
-            onRefresh: () async => ref.refresh(mahasiswaNotifierProvider),
-            child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // Header Modern
-                SliverAppBar(
-                  expandedHeight: 120.0,
-                  pinned: true,
-                  elevation: 0,
-                  flexibleSpace: FlexibleSpaceBar(
-                    centerTitle: true,
-                    // 3. Judul dinamis: berubah sesuai filter yang aktif
-                    title: Text(
-                      filterStatus == null ? 'Data Mahasiswa' : 'Mahasiswa $filterStatus',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
-                    background: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: AppConstants.gradientPurple,
-                        ),
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(30),
-                          bottomRight: Radius.circular(30),
+                return ListView.builder(
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final mhs = filtered[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      child: ListTile(
+                        leading: CircleAvatar(child: Text(mhs.id.toString())),
+                        title: Text(mhs.nama, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('${mhs.email}\nStatus: ${mhs.status}'),
+                        isThreeLine: true,
+                        trailing: IconButton(
+                          icon: const Icon(Icons.save_rounded, color: Colors.blue),
+                          onPressed: () async {
+                            await ref.read(mahasiswaNotifierProvider.notifier).saveMahasiswa(mhs);
+                            ref.invalidate(savedMhsProvider); // Update seksi atas otomatis [cite: 451]
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('${mhs.nama} disimpan ke HP!'))
+                            );
+                          },
                         ),
                       ),
-                    ),
-                  ),
-                ),
-                // Daftar Mahasiswa yang sudah difilter
-                SliverPadding(
-                  padding: const EdgeInsets.only(top: 10, bottom: 20),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => ModernMahasiswaCard(
-                        // 4. Gunakan filteredList agar datanya benar
-                        mahasiswa: filteredList[index],
-                        index: index,
-                        onTap: () {},
-                      ),
-                      childCount: filteredList.length,
-                    ),
-                  ),
-                ),
-              ],
+                    );
+                  },
+                );
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
-}
+
+  Widget _buildSavedSection(AsyncValue<List<Map<String, String>>> savedMhs, WidgetRef ref) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      color: Colors.blue.withOpacity(0.05),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.sd_storage_outlined, size: 16, color: Colors.blue),
+              SizedBox(width: 8),
+              Text("Tersimpan Offline", style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          savedMhs.when(
+            loading: () => const LinearProgressIndicator(),
+            error: (e, _) => const Text("Gagal muat data lokal"),
+            data: (users) => users.isEmpty 
+              ? const Text("Belum ada data favorit.", style: TextStyle(color: Colors.grey, fontSize: 12))
+              : SizedBox(
+                  height: 50,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: users.length,
+                    itemBuilder: (context, i) => Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      child: Chip(
+                        label: Text(users[i]['username']!, style: const TextStyle(fontSize: 11)),
+                        backgroundColor: Colors.white,
+                        onDeleted: () async {
+                          await ref.read(mahasiswaNotifierProvider.notifier).deleteSavedMhs(users[i]['user_id']!);
+                          ref.invalidate(savedMhsProvider); // Refresh otomatis [cite: 399]
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}VV

@@ -9,17 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  
-  # State Management yang diminta modul 
-  flutter_riverpod: ^2.6.1 
-
-  # Library untuk mengambil data dari API (Tugas No. 2) [cite: 66, 69]
+  flutter_riverpod: ^2.6.1
   http: ^1.2.2
-
-  # Library untuk mengambil data dari API (Tugas No. 7) [cite: 61, 482]
-  dio: ^5.4.0
-
-  cupertino_icons: ^1.0.8
+  dio: ^5.8.0+1
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:

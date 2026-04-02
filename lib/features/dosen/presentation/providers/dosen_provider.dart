@@ -1,40 +1,51 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/local_storage_service.dart';
 import '../../data/models/dosen_model.dart';
 import '../../data/repositories/dosen_repository.dart';
 
-// Provider untuk Repositori Dosen
-final dosenRepositoryProvider = Provider<DosenRepository>((ref) {
-  return DosenRepository();
+final localStorageProvider = Provider((ref) => LocalStorageService());
+final dosenRepoProvider = Provider((ref) => DosenRepository());
+
+final savedUsersProvider = FutureProvider<List<Map<String, String>>>((ref) {
+  return ref.watch(localStorageProvider).getSavedUsers();
 });
 
-// StateNotifier untuk mengelola state list dosen
 class DosenNotifier extends StateNotifier<AsyncValue<List<DosenModel>>> {
-  final DosenRepository _repository;
+  final DosenRepository _repo;
+  final LocalStorageService _storage;
 
-  DosenNotifier(this._repository) : super(const AsyncValue.loading()) {
-    loadDosenList();
+  DosenNotifier(this._repo, this._storage) : super(const AsyncValue.loading()) {
+    loadDosenList(); 
   }
 
-  // Fungsi untuk mengambil data dosen
-  Future<void> loadDosenList() async {
+  Future<void> loadDosenList() async { 
     state = const AsyncValue.loading();
     try {
-      final data = await _repository.getDosenList();
+      final data = await _repo.getDosenList();
       state = AsyncValue.data(data);
-    } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
   }
 
-  // Fungsi untuk menyegarkan data
-  Future<void> refresh() async {
-    await loadDosenList();
+  Future<void> saveSelectedDosen(DosenModel dosen) async {
+    await _storage.addUserToSavedList(
+      userId: dosen.id.toString(),
+      username: dosen.username,
+    );
+  }
+
+  // Tambahkan fungsi hapus satu per satu agar DosenPage tidak merah
+  Future<void> removeSavedUser(String userId) async {
+    await _storage.removeSavedUser(userId);
+  }
+
+  // Tambahkan fungsi hapus semua
+  Future<void> clearSavedUsers() async {
+    await _storage.clearSavedUsers();
   }
 }
 
-// Provider untuk Dosen Notifier
-final dosenNotifierProvider =
-    StateNotifierProvider.autoDispose<DosenNotifier, AsyncValue<List<DosenModel>>>((ref) {
-  final repository = ref.watch(dosenRepositoryProvider);
-  return DosenNotifier(repository);
+final dosenNotifierProvider = StateNotifierProvider<DosenNotifier, AsyncValue<List<DosenModel>>>((ref) {
+  return DosenNotifier(ref.watch(dosenRepoProvider), ref.watch(localStorageProvider));
 });
